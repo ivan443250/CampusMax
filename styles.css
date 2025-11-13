@@ -31,6 +31,21 @@ body {
     flex-direction: column;
 }
 
+.phone-shell--register-bg {
+    position: relative;
+    background: transparent; /* чтобы было видно псевдоэлемент */
+}
+
+.phone-shell--register-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("img/hero-pattern.png"); /* та же картинка */
+    background-size: cover;
+    background-position: top center;
+    z-index: 0;
+}
+
 /* Верхняя цветная область с картинкой */
 
 .hero {
@@ -55,12 +70,17 @@ body {
 
 .sheet {
     flex: 1;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), #ffffff);
-    border-radius: 32px 32px 0 0;
     margin-top: -40px;
     padding: 24px 20px 32px;
     position: relative;
-    backdrop-filter: blur(16px);
+
+    /* радиус верхних углов можно оставить “телефонным” */
+    border-radius: 32px 32px 0 0;
+}
+
+/* если sheet = стекло — чуть усиливаем эффект и радиус */
+.sheet.glass {
+    border-radius: 32px 32px 0 0;
 }
 
 /* Маленькая полоска сверху карточки */
@@ -98,28 +118,63 @@ body {
     gap: 12px;
 }
 
+/* ---------- ПОЛЯ ВВОДА ПОД МАКЕТ ---------- */
+
 .input-field,
 .select-field {
     width: 100%;
+    height: 44px;
     border-radius: 999px;
+
+    /* визуально как на картинке: белое “яичко” с лёгким объёмом */
+    background: linear-gradient(180deg, #ffffff 0%, #f4f5f9 100%);
     border: none;
-    padding: 12px 18px;
+
+    padding: 0 18px;
     font-size: 14px;
-    background: #f9fafb;
-    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.35);
+    color: #111827;
+
+    box-shadow:
+        0 8px 18px rgba(15, 23, 42, 0.10),
+        0 0 0 1px rgba(209, 213, 219, 0.35);
+
     outline: none;
-    transition: box-shadow 0.15s ease, background 0.15s ease;
+    transition:
+        box-shadow 0.15s ease,
+        transform 0.08s ease,
+        background 0.15s ease;
 }
 
 .input-field::placeholder {
-    color: #9ca3af;
+    color: #a0aec0; /* мягкий серый, как в макете */
 }
 
+/* состояние фокуса: лёгкий синий свеч и немного “поднятое” поле */
 .input-field:focus,
 .select-field:focus {
-    box-shadow: 0 0 0 2px #2563eb55;
+    box-shadow:
+        0 10px 22px rgba(37, 99, 235, 0.28),
+        0 0 0 1px rgba(37, 99, 235, 0.55);
     background: #ffffff;
+    transform: translateY(-1px);
 }
+
+/* ---------- СЕЛЕКТ ПОД МАКЕТ (скрываем системную стрелку) ---------- */
+
+.select-field {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    padding-right: 42px; /* чтобы текст не залез на стрелку */
+
+    background-image: url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%2394a3b8' d='M5 7l5 6 5-6H5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 14px 14px;
+}
+
+/* на старых браузерах стрелка может остаться, но вид будет максимально близкий */
 
 /* Кнопки */
 
@@ -284,4 +339,32 @@ body {
     padding: 0;
     text-decoration: underline;
     margin-top: 8px;
+}
+
+/* Базовый утилитарный класс для стеклянных панелей */
+.glass {
+    /* полупрозрачный фон c лёгким градиентом */
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.75),
+        rgba(255, 255, 255, 0.18)
+    );
+
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.85);
+
+    /* свечка/объём */
+    box-shadow:
+        0 18px 40px rgba(15, 23, 42, 0.38),
+        0 0 0 1px rgba(148, 163, 184, 0.15);
+
+    /* собственно эффект стекла */
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+.hero,
+.sheet {
+    position: relative;   /* у sheet уже стоял, но не страшно повторить */
+    z-index: 1;
 }
