@@ -1,39 +1,18 @@
-// auth.js — версия с подробными логами
+// auth.js
+// Подключаем ТОЛЬКО Firestore, без Firebase Auth
 
-console.log("[AUTH] script file loaded");
-
-// Подключаем Firebase (CDN-модули)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import {
-    getAuth,
-    onAuthStateChanged,
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    signOut
-} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
-import {
     getFirestore,
+    collection,
+    query,
+    where,
+    limit,
+    getDocs,
     doc,
-    setDoc,
     getDoc
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-/* ---------- Глобальные обработчики ошибок ---------- */
-
-window.onerror = function (message, source, lineno, colno, error) {
-    console.error("[AUTH][window.onerror]", { message, source, lineno, colno, error });
-};
-
-window.onunhandledrejection = function (event) {
-    console.error("[AUTH][unhandledrejection]", event.reason);
-};
-
-/* ---------- 1. Firebase config ---------- */
-
-/*
-    ЗАМЕНИ значения в firebaseConfig на свои
-    из Firebase Console → Project settings → General → Your apps → Web app
-*/
 const firebaseConfig = {
   apiKey: "AIzaSyDVYf1_aFb57GN5y_stmeo6MdSBVPPN1yQ",
   authDomain: "campusmax-21caf.firebaseapp.com",
@@ -44,226 +23,152 @@ const firebaseConfig = {
   measurementId: "G-2B9RQX0QCR"
 };
 
-let app;
-let auth;
-let db;
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-try {
-    console.log("[AUTH] Initializing Firebase with config:", firebaseConfig);
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
-    console.log("[AUTH] Firebase initialized successfully");
-} catch (e) {
-    console.error("[AUTH] Firebase init ERROR", e);
+/* ---------- 2. Простая “сессия” через localStorage ---------- */
+
+const SESSION_UID_KEY = "campusMaxUserUid";
+
+function saveSession(uid) {
+    localStorage.setItem(SESSION_UID_KEY, uid);
 }
 
-/* ---------- 2. Инициализация UI ---------- */
+function getSessionUid() {
+    return localStorage.getItem(SESSION_UID_KEY);
+}
+
+function clearSession() {
+    localStorage.removeItem(SESSION_UID_KEY);
+}
+
+/* ---------- 3. Инициализация по типу страницы ---------- */
 
 document.addEventListener("DOMContentLoaded", () => {
-    console.log("[AUTH] DOMContentLoaded fired");
-
     const loginForm = document.getElementById("loginForm");
-    const registerForm = document.getElementById("registerForm");
     const appContent = document.querySelector(".app-content");
 
     if (loginForm) {
-        console.log("[AUTH] loginForm found, setting up");
         setupLoginForm(loginForm);
-    } else {
-        console.log("[AUTH] loginForm not found on this page");
-    }
-
-    if (registerForm) {
-        console.log("[AUTH] registerForm found, setting up");
-        setupRegisterForm(registerForm);
-    } else {
-        console.log("[AUTH] registerForm not found on this page");
     }
 
     if (appContent) {
-        console.log("[AUTH] appContent found (app.html), setting up tabs & auth guard");
+        protectAppPage();   // проверяем “сессию” и грузим профиль
         setupTabs();
-        setupAuthGuardForApp();
-    } else {
-        console.log("[AUTH] appContent not found (значит это не app.html)");
     }
 
-    // делаем logout доступным из HTML (onclick="logout()")
+    // чтобы работал onclick="logout()" в app.html
     window.logout = logout;
 });
 
-/* ---------- 3. Регистрация ---------- */
-
-function setupRegisterForm(form) {
-    console.log("[AUTH] setupRegisterForm called");
-    const errorBox = document.getElementById("registerError");
-
-    form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        console.log("[AUTH] registerForm submitted");
-
-        try {
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
-            console.log("[AUTH] register form data:", data);
-
-            const email = (data.email || "").trim();
-            const password = data.password || "";
-
-            if (!email || !password) {
-                console.warn("[AUTH] register: email or password missing");
-                showError(errorBox, "Укажите почту и пароль.");
-                return;
-            }
-
-            console.log("[AUTH] Calling createUserWithEmailAndPassword");
-            const cred = await createUserWithEmailAndPassword(auth, email, password);
-            console.log("[AUTH] createUserWithEmailAndPassword success, uid:", cred.user.uid);
-
-            const uid = cred.user.uid;
-
-            const profile = {
-                firstName: data.firstName || "",
-                lastName: data.lastName || "",
-                middleName: data.middleName || "",
-                university: data.university || "",
-                group: data.group || "",
-                phone: data.phone || "",
-                email: email
-            };
-
-            console.log("[AUTH] Writing profile to Firestore for uid:", uid, profile);
-            await setDoc(doc(db, "users", uid), profile);
-            console.log("[AUTH] Profile saved to Firestore, redirecting to app.html");
-
-            window.location.href = "app.html";
-        } catch (error) {
-            console.error("[AUTH] Error in register submit handler:", error);
-            showError(errorBox, mapAuthError(error));
-        }
-    });
-}
-
-/* ---------- 4. Вход ---------- */
+/* ---------- 4. Вход: поиск пользователя в Firestore ---------- */
 
 function setupLoginForm(form) {
-    console.log("[AUTH] setupLoginForm called");
     const errorBox = document.getElementById("loginError");
 
     form.addEventListener("submit", async (e) => {
         e.preventDefault();
-        console.log("[AUTH] loginForm submitted");
 
-        try {
-            const email = (form.email.value || "").trim();
-            const password = form.password.value || "";
+        const login = (form.login.value || "").trim();
+        const password = form.password.value || "";
 
-            console.log("[AUTH] login email:", email);
-
-            if (!email || !password) {
-                console.warn("[AUTH] login: email or password missing");
-                showError(errorBox, "Введите e-mail и пароль.");
-                return;
-            }
-
-            console.log("[AUTH] Calling signInWithEmailAndPassword");
-            const cred = await signInWithEmailAndPassword(auth, email, password);
-            console.log("[AUTH] signInWithEmailAndPassword success, uid:", cred.user.uid);
-
-            window.location.href = "app.html";
-        } catch (error) {
-            console.error("[AUTH] Error in login submit handler:", error);
-            showError(errorBox, mapAuthError(error));
-        }
-    });
-}
-
-/* ---------- 5. Страница app.html: защита и приветствие ---------- */
-
-function setupAuthGuardForApp() {
-    console.log("[AUTH] setupAuthGuardForApp called");
-
-    if (!auth) {
-        console.error("[AUTH] setupAuthGuardForApp: auth is undefined (Firebase not initialized)");
-        return;
-    }
-
-    onAuthStateChanged(auth, async (user) => {
-        console.log("[AUTH] onAuthStateChanged fired, user:", user);
-        if (!user) {
-            console.warn("[AUTH] No user, redirecting to index.html");
-            window.location.href = "index.html";
+        if (!login || !password) {
+            showError(errorBox, "Введите логин и пароль.");
             return;
         }
 
         try {
-            await initAppPage(user);
-        } catch (e) {
-            console.error("[AUTH] Error in initAppPage:", e);
+            // ищем пользователя с таким логином
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("login", "==", login), limit(1));
+            const snap = await getDocs(q);
+
+            if (snap.empty) {
+                showError(errorBox, "Неверный логин или пароль.");
+                return;
+            }
+
+            const docSnap = snap.docs[0];
+            const data = docSnap.data();
+
+            // ПРОТОТИП: сравнение пароля в лоб
+            if (data.password !== password) {
+                showError(errorBox, "Неверный логин или пароль.");
+                return;
+            }
+
+            // успех — сохраняем “сессию” и идём в приложение
+            saveSession(docSnap.id);
+            window.location.href = "app.html";
+        } catch (error) {
+            console.error("Ошибка при попытке входа:", error);
+            showError(errorBox, "Ошибка соединения с базой. Попробуйте позже.");
         }
     });
 }
 
-async function initAppPage(user) {
-    console.log("[AUTH] initAppPage called for uid:", user.uid);
-    const welcomeText = document.getElementById("welcomeText");
-    if (!welcomeText) {
-        console.warn("[AUTH] welcomeText element not found");
+/* ---------- 5. Защита app.html + загрузка профиля ---------- */
+
+function protectAppPage() {
+    const uid = getSessionUid();
+    if (!uid) {
+        // нет “сессии” — кидаем на логин
+        window.location.href = "index.html";
         return;
     }
 
-    let displayName = "";
-
-    try {
-        console.log("[AUTH] Loading user profile from Firestore");
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if (snap.exists()) {
-            const profile = snap.data();
-            console.log("[AUTH] Firestore profile:", profile);
-            displayName = profile.firstName || profile.lastName || "";
-        } else {
-            console.warn("[AUTH] No user profile document in Firestore");
-        }
-    } catch (e) {
-        console.error("[AUTH] Error while loading profile from Firestore:", e);
-    }
-
-    if (!displayName) {
-        displayName = user.email || "пользователь";
-    }
-
-    welcomeText.textContent = `Добро пожаловать, ${displayName}!`;
+    // если uid есть — загружаем профиль
+    initAppWithProfile(uid).catch((e) => {
+        console.error("Ошибка загрузки профиля:", e);
+        clearSession();
+        window.location.href = "index.html";
+    });
 }
 
-/* ---------- 6. Нижнее меню / вкладки ---------- */
+async function initAppWithProfile(uid) {
+    const welcomeText = document.getElementById("welcomeText");
+
+    const snap = await getDoc(doc(db, "users", uid));
+
+    if (!snap.exists()) {
+        throw new Error("Профиль пользователя не найден");
+    }
+
+    const profile = snap.data();
+
+    const displayName =
+        profile.fullName ||
+        profile.firstName ||
+        profile.login ||
+        "студент";
+
+    if (welcomeText) {
+        welcomeText.textContent = `Добро пожаловать, ${displayName}!`;
+    }
+
+    // здесь же можно по profile.universityId грузить расписание и т.п.
+    // const universityId = profile.universityId;
+}
+
+/* ---------- 6. Нижнее меню и вкладки на app.html ---------- */
 
 function setupTabs() {
-    console.log("[AUTH] setupTabs called");
-
     const navItems = document.querySelectorAll(".nav-item");
     const tabs = document.querySelectorAll(".tab");
     const heading = document.querySelector(".app-heading");
 
-    console.log("[AUTH] navItems count:", navItems.length, "tabs count:", tabs.length);
-
-    if (!navItems.length) {
-        console.warn("[AUTH] No navItems found");
-        return;
-    }
+    if (!navItems.length) return;
 
     navItems.forEach((btn) => {
         btn.addEventListener("click", () => {
             const tabName = btn.dataset.tab;
-            console.log("[AUTH] nav-item clicked, tabName:", tabName);
             if (!tabName) return;
 
             navItems.forEach((b) => b.classList.remove("is-active"));
             btn.classList.add("is-active");
 
             tabs.forEach((tab) => {
-                const isActive = tab.id === `tab-${tabName}`;
-                tab.classList.toggle("active", isActive);
+                tab.classList.toggle("active", tab.id === `tab-${tabName}`);
             });
 
             if (!heading) return;
@@ -291,44 +196,15 @@ function setupTabs() {
 
 /* ---------- 7. Выход ---------- */
 
-async function logout() {
-    console.log("[AUTH] logout called");
-
-    try {
-        await signOut(auth);
-        console.log("[AUTH] signOut success, redirecting to index.html");
-        window.location.href = "index.html";
-    } catch (error) {
-        console.error("[AUTH] Error in logout:", error);
-        alert("Не удалось выйти: " + (error.message || "ошибка"));
-    }
+function logout() {
+    clearSession();
+    window.location.href = "index.html";
 }
 
-/* ---------- 8. Вспомогательные функции ---------- */
+/* ---------- 8. Вспомогательные ---------- */
 
 function showError(box, message) {
-    console.log("[AUTH] showError:", message);
     if (!box) return;
     box.textContent = message;
     box.style.display = "block";
-}
-
-function mapAuthError(error) {
-    const code = error.code || "";
-    console.log("[AUTH] mapAuthError, code:", code);
-
-    if (code === "auth/email-already-in-use") {
-        return "Такой e-mail уже зарегистрирован.";
-    }
-    if (code === "auth/invalid-email") {
-        return "Некорректный адрес электронной почты.";
-    }
-    if (code === "auth/weak-password") {
-        return "Слишком простой пароль (минимум 6 символов).";
-    }
-    if (code === "auth/user-not-found" || code === "auth/wrong-password") {
-        return "Неверная пара e-mail / пароль.";
-    }
-
-    return "Ошибка: " + (error.message || "что-то пошло не так.");
 }
