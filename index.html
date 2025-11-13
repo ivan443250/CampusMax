@@ -6,25 +6,25 @@
     <title>КампусMAX — вход</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="styles.css">
-    <!-- Важно: подключаем как ES-модуль -->
+    <!-- Firebase-логика -->
     <script type="module" src="auth.js"></script>
 </head>
 <body class="page">
-<div class="phone-shell">
+<div class="phone-shell phone-shell--login-bg">
     <header class="hero"></header>
 
-    <main class="sheet">
+    <main class="sheet glass">
         <div class="sheet-handle"></div>
 
         <h1 class="title">КампусMAX</h1>
-        <p class="subtitle">Все необходимое под рукой</p>
+        <p class="subtitle">Вход для студентов</p>
 
         <form id="loginForm" class="form">
             <input
-                type="email"
-                name="email"
+                type="text"
+                name="login"
                 class="input-field"
-                placeholder="Электронная почта"
+                placeholder="Логин"
                 required
             >
             <input
@@ -39,19 +39,12 @@
                 Войти
             </button>
 
-            <button
-                class="btn btn-secondary"
-                type="button"
-                onclick="window.location.href='register.html'"
-            >
-                Зарегистрироваться
-            </button>
-
             <div id="loginError" class="form-error" style="display: none;"></div>
         </form>
 
         <p class="footer-note">
-            Авторизация через Firebase (email + пароль).
+            Аккаунт выдаётся вашим учебным заведением.
+            Если у вас нет логина и пароля, обратитесь в деканат или в поддержку вуза.
         </p>
     </main>
 </div>

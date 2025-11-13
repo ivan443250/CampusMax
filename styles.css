@@ -31,16 +31,16 @@ body {
     flex-direction: column;
 }
 
-.phone-shell--register-bg {
+.phone-shell--login-bg {
     position: relative;
-    background: transparent; /* чтобы было видно псевдоэлемент */
+    background: transparent; /* чтобы видеть ::before */
 }
 
-.phone-shell--register-bg::before {
+.phone-shell--login-bg::before {
     content: "";
     position: absolute;
     inset: 0;
-    background-image: url("img/hero-pattern.png"); /* та же картинка */
+    background-image: url("img/hero-pattern.png"); /* та же картинка, что и в hero */
     background-size: cover;
     background-position: top center;
     z-index: 0;
@@ -218,7 +218,7 @@ body {
 .footer-note {
     margin-top: 16px;
     font-size: 12px;
-    color: #9ca3af;
+    color: #555558;
     text-align: center;
 }
 
