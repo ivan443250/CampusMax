@@ -185,37 +185,51 @@ async function loadScheduleForTodayTomorrow(config) {
             "Сейчас " + (todayWeekType === "even" ? "четная" : "нечетная") + " неделя";
     }
     if (currentDayLabel) {
-        const jsDay = now.getDay(); // для названия дня
+        const jsDay = now.getDay(); // 0..6
         currentDayLabel.textContent = WEEKDAY_NAMES_RU[jsDay] || "";
     }
 
     const todayContainer = document.getElementById("scheduleToday");
     const tomorrowContainer = document.getElementById("scheduleTomorrow");
 
-    // --- 1) пробуем взять из кэша ---
-    const cache = readScheduleCache();
-    const cacheIsValid =
-        cache &&
-        cache.uid === uid &&
-        cache.universityId === universityId &&
-        cache.groupId === groupId &&
-        cache.todayDate === todayDateStr &&
-        cache.tomorrowDate === tomorrowDateStr &&
-        cache.todayWeekType === todayWeekType &&
-        cache.tomorrowWeekType === tomorrowWeekType;
-
-    if (cacheIsValid) {
-        if (todayContainer) {
-            renderLessonsList(todayContainer, cache.todayLessons || []);
-        }
-        if (tomorrowContainer) {
-            renderLessonsList(tomorrowContainer, cache.tomorrowLessons || []);
-        }
-        // Всё, кэш сработал, сетевые запросы не делаем
-        return;
+    /* ---------- определяем, это reload или обычная навигация ---------- */
+    let isReload = false;
+    try {
+        const navEntries = performance.getEntriesByType
+            ? performance.getEntriesByType("navigation")
+            : null;
+        const navType = navEntries && navEntries[0] && navEntries[0].type;
+        isReload = navType === "reload";
+    } catch {
+        // если что-то пошло не так — считаем, что не reload
     }
 
-    // --- 2) кэша нет или он устарел — грузим из Firestore и перезаписываем кэш ---
+    /* ---------- 1) пробуем кэш ТОЛЬКО если это не reload ---------- */
+    if (!isReload) {
+        const cache = readScheduleCache();
+        const cacheIsValid =
+            cache &&
+            cache.uid === uid &&
+            cache.universityId === universityId &&
+            cache.groupId === groupId &&
+            cache.todayDate === todayDateStr &&
+            cache.tomorrowDate === tomorrowDateStr &&
+            cache.todayWeekType === todayWeekType &&
+            cache.tomorrowWeekType === tomorrowWeekType;
+
+        if (cacheIsValid) {
+            if (todayContainer) {
+                renderLessonsList(todayContainer, cache.todayLessons || []);
+            }
+            if (tomorrowContainer) {
+                renderLessonsList(tomorrowContainer, cache.tomorrowLessons || []);
+            }
+            // кэш сработал — в Firestore не идём
+            return;
+        }
+    }
+
+    /* ---------- 2) кэша нет / reload / устарел — грузим из Firestore ---------- */
     const [lessonsToday, lessonsTomorrow] = await Promise.all([
         loadDayLessons(universityId, todayWeekType, todayIndex, groupId),
         loadDayLessons(universityId, tomorrowWeekType, tomorrowIndex, groupId)
@@ -228,6 +242,7 @@ async function loadScheduleForTodayTomorrow(config) {
         renderLessonsList(tomorrowContainer, lessonsTomorrow);
     }
 
+    // перезаписываем кэш
     writeScheduleCache({
         uid,
         universityId,
@@ -240,6 +255,7 @@ async function loadScheduleForTodayTomorrow(config) {
         tomorrowLessons: lessonsTomorrow
     });
 }
+
 
 /**
  * Загружает пары для конкретной недели и дня из новой структуры:
