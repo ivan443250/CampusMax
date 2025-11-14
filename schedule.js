@@ -1,7 +1,8 @@
 // schedule.js
-// Чтение расписания из Firestore по структуре:
-// universities/{universityId}/schedule/{even|odd}/days/{1..7}
-//   lessons: [ { id, group, startTime, endTime, subject, ... }, ... ]
+// Структура расписания:
+//
+// universities/{universityId}/schedule/{groupId}/{even|odd}/{dayKey}
+//   lessons: [ { group, startTime, endTime, subject, ... }, ... ]
 
 import { getApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import {
@@ -110,7 +111,7 @@ async function initScheduleForCurrentUser() {
 
     const profile = userSnap.data(); // ожидаем universityId и group
     const universityId = profile.universityId;
-    const groupId = profile.group;
+    const groupId = profile.group;   // обязательно совпадает с {groupId} в новом пути
 
     if (!universityId || !groupId) {
         console.warn("В профиле нет universityId или group — расписание не загружается.");
@@ -135,15 +136,14 @@ async function initScheduleForCurrentUser() {
 /* === 4. Загрузка расписания недели + выбор сегодня/завтра === */
 
 /**
- * Загружает всю неделю для заданного вуза и типа недели ("even"/"odd"),
- * аналогично функции loadSchedule в admin app.js:
+ * Загружает всю неделю для заданного вуза, группы и типа недели ("even"/"odd"):
  *
- * universities/{universityId}/schedule/{weekKey}/days/{1..7}
+ * universities/{universityId}/schedule/{groupId}/{weekKey}/{dayKey}
  *   lessons: [ ... ]
  *
  * Возвращает объект: { "1": [lessons], "2": [...], ... }.
  */
-async function loadWeekSchedule(universityId, weekKey) {
+async function loadWeekSchedule(universityId, groupId, weekKey) {
     const byDay = {};
 
     try {
@@ -152,8 +152,8 @@ async function loadWeekSchedule(universityId, weekKey) {
             "universities",
             universityId,
             "schedule",
-            weekKey,
-            "days"
+            groupId,
+            weekKey          // "even" или "odd" — это subcollection
         );
 
         const snapshot = await getDocs(daysRef);
@@ -171,8 +171,9 @@ async function loadWeekSchedule(universityId, weekKey) {
     return byDay;
 }
 
-/** Фильтр по группе + сортировка по номеру пары/времени */
+/** сортировка по номеру пары/времени (фильтр по groupId уже не обязателен, т.к. путь содержит группу) */
 function prepareLessonsForDay(lessons, groupId) {
+    // если вдруг в массиве всё ещё лежат пары нескольких групп — можно оставить фильтр
     const filtered = lessons.filter((lesson) => {
         if (!groupId) return true;
         if (lesson.group == null) return true;
@@ -227,17 +228,17 @@ async function loadScheduleForTodayTomorrow(config) {
     const todayContainer = document.getElementById("scheduleToday");
     const tomorrowContainer = document.getElementById("scheduleTomorrow");
 
-    // Загружаем недели. Если сегодня и завтра в одной неделе — грузим её один раз.
+    // загружаем недели. если сегодня и завтра в одной неделе — грузим один раз
     let scheduleTodayWeek = {};
     let scheduleTomorrowWeek = {};
 
     if (todayWeekKey === tomorrowWeekKey) {
-        scheduleTodayWeek = await loadWeekSchedule(universityId, todayWeekKey);
+        scheduleTodayWeek = await loadWeekSchedule(universityId, groupId, todayWeekKey);
         scheduleTomorrowWeek = scheduleTodayWeek;
     } else {
         const [weekToday, weekTomorrow] = await Promise.all([
-            loadWeekSchedule(universityId, todayWeekKey),
-            loadWeekSchedule(universityId, tomorrowWeekKey)
+            loadWeekSchedule(universityId, groupId, todayWeekKey),
+            loadWeekSchedule(universityId, groupId, tomorrowWeekKey)
         ]);
         scheduleTodayWeek = weekToday;
         scheduleTomorrowWeek = weekTomorrow;
@@ -280,7 +281,6 @@ function renderLessonsList(container, lessons) {
         const end = lesson.endTime || lesson.end_time || "";
         const pairNumber = lesson.order ?? lesson.pairNumber ?? null;
 
-        // 1-я строка: "3 пара (13:00 — 14:30)" или просто "13:00 — 14:30"
         const header = document.createElement("div");
         header.className = "lesson-header";
 
@@ -290,26 +290,22 @@ function renderLessonsList(container, lessons) {
             header.textContent = start + " — " + end;
         }
 
-        // 2-я строка: название предмета
         const subject = document.createElement("div");
         subject.className = "lesson-subject";
         subject.textContent = lesson.subject || lesson.title || "";
 
-        // 3-я строка: аудитория / корпус
         const roomLine = document.createElement("div");
         roomLine.className = "lesson-meta";
         if (lesson.room) {
             roomLine.textContent = lesson.room;
         }
 
-        // 4-я строка: преподаватель
         const teacherLine = document.createElement("div");
         teacherLine.className = "lesson-meta";
         if (lesson.teacher) {
             teacherLine.textContent = lesson.teacher;
         }
 
-        // 5-я строка: доп. заметка
         const noteLine = document.createElement("div");
         noteLine.className = "lesson-note";
         if (lesson.note) {

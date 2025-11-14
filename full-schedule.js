@@ -1,8 +1,7 @@
 // full-schedule.js
-// Страница "Все расписание": показывает все дни недели с переключателем
-// четная / нечетная, структура Firestore:
+// Полное расписание по новой структуре:
 //
-// universities/{universityId}/schedule/{even|odd}/days/{1..7}
+// universities/{universityId}/schedule/{groupId}/{even|odd}/{dayKey}
 //   lessons: [ { group, startTime, endTime, subject, ... }, ... ]
 
 import { getApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
@@ -107,7 +106,6 @@ async function initFullSchedule(container) {
     const scheduleStartDate = uniData.scheduleStartDate;
     const scheduleFirstWeekType = uniData.scheduleFirstWeekType;
 
-    // определяем, какая неделя сейчас — чтобы подсветить по умолчанию
     const nowWeekType = getWeekTypeForDate(new Date(), scheduleStartDate, scheduleFirstWeekType || "even");
 
     const weekButtons = document.querySelectorAll(".week-toggle-btn");
@@ -135,7 +133,7 @@ async function initFullSchedule(container) {
 /* ==== 4. Загрузка недели и подготовка уроков ==== */
 
 /** грузим всю неделю: объект { "1": [lessons], ..., "7": [lessons] } */
-async function loadWeekSchedule(universityId, weekKey) {
+async function loadWeekSchedule(universityId, groupId, weekKey) {
     const byDay = {};
 
     try {
@@ -144,8 +142,8 @@ async function loadWeekSchedule(universityId, weekKey) {
             "universities",
             universityId,
             "schedule",
-            weekKey,
-            "days"
+            groupId,
+            weekKey            // "even" / "odd" subcollection
         );
 
         const snapshot = await getDocs(daysRef);
@@ -163,7 +161,7 @@ async function loadWeekSchedule(universityId, weekKey) {
     return byDay;
 }
 
-/** фильтр по группе + сортировка */
+/** сортировка (groupId уже в пути, фильтр по нему опционален) */
 function prepareLessonsForDay(lessons, groupId) {
     const filtered = lessons.filter((lesson) => {
         if (!groupId) return true;
@@ -191,10 +189,10 @@ function prepareLessonsForDay(lessons, groupId) {
 /* ==== 5. Рендер недели ==== */
 
 async function loadAndRenderWeek(container, universityId, groupId, weekKey) {
-    // небольшая заглушка в контейнере
-    container.innerHTML = "<p style='font-size:13px;color:#6b7280;'>Загрузка расписания...</p>";
+    container.innerHTML =
+        "<p style='font-size:13px;color:#6b7280;'>Загрузка расписания...</p>";
 
-    const rawByDay = await loadWeekSchedule(universityId, weekKey);
+    const rawByDay = await loadWeekSchedule(universityId, groupId, weekKey);
     const prepared = {};
 
     for (let i = 1; i <= 7; i++) {
@@ -213,9 +211,7 @@ function renderFullSchedule(container, scheduleByDay) {
         const dayLessons = scheduleByDay[String(i)] || [];
         const dayName = DAY_NAMES_RU[i];
 
-        // можно пропускать день, если занятий нет
-        // если хочешь выводить "нет занятий", убери это условие
-        if (!dayLessons.length) continue;
+        if (!dayLessons.length) continue; // пустые дни можно скрывать
 
         const dayBlock = document.createElement("section");
         dayBlock.className = "full-schedule-day";
@@ -244,8 +240,6 @@ function renderFullSchedule(container, scheduleByDay) {
         container.appendChild(empty);
     }
 }
-
-/* переиспользуем тот же формат карточки, что и на главной */
 
 function createLessonCard(lesson) {
     const card = document.createElement("div");
