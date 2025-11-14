@@ -241,6 +241,7 @@ function renderLessonsList(container, lessons) {
         empty.textContent = "На этот день занятий нет.";
         empty.style.fontSize = "13px";
         empty.style.color = "#6b7280";
+        empty.style.padding = "8px 12px";
         container.appendChild(empty);
         return;
     }
@@ -251,42 +252,61 @@ function renderLessonsList(container, lessons) {
 
         const start = lesson.startTime || lesson.start_time || "";
         const end = lesson.endTime || lesson.end_time || "";
+        const pairNumber = lesson.order ?? lesson.pairNumber ?? null;
 
-        const time = document.createElement("div");
-        time.className = "lesson-time";
-        time.textContent = `${start} — ${end}`;
+        // 1-я строка: "3 пара (13:00 — 14:30)" или просто "13:00 — 14:30"
+        const header = document.createElement("div");
+        header.className = "lesson-header";
 
+        if (pairNumber != null && start && end) {
+            header.textContent = `${pairNumber} пара (${start} — ${end})`;
+        } else if (start || end) {
+            header.textContent = `${start} — ${end}`;
+        }
+
+        // 2-я строка: название предмета
         const subject = document.createElement("div");
         subject.className = "lesson-subject";
         subject.textContent = lesson.subject || lesson.title || "";
 
-        const room = document.createElement("div");
-        room.className = "lesson-room";
+        // 3-я строка: аудитория / корпус
+        const roomLine = document.createElement("div");
+        roomLine.className = "lesson-meta";
         if (lesson.room) {
-            room.textContent = lesson.room;
+            roomLine.textContent = lesson.room;
         }
 
-        const teacher = document.createElement("div");
-        teacher.className = "lesson-teacher";
+        // 4-я строка: преподаватель
+        const teacherLine = document.createElement("div");
+        teacherLine.className = "lesson-meta";
         if (lesson.teacher) {
-            teacher.textContent = lesson.teacher;
+            teacherLine.textContent = lesson.teacher;
         }
 
-        const note = document.createElement("div");
-        note.className = "lesson-note";
+        // 5-я строка: доп. заметка
+        const noteLine = document.createElement("div");
+        noteLine.className = "lesson-note";
         if (lesson.note) {
-            note.textContent = lesson.note;
+            noteLine.textContent = lesson.note;
         }
 
-        card.appendChild(time);
+        // "Подробнее" как на скрине (пока просто текст, без логики)
+        const more = document.createElement("div");
+        more.className = "lesson-more-link";
+        more.textContent = "Подробнее";
+
+        // собираем карточку
+        if (header.textContent) card.appendChild(header);
         card.appendChild(subject);
-        if (lesson.room) card.appendChild(room);
-        if (lesson.teacher) card.appendChild(teacher);
-        if (lesson.note) card.appendChild(note);
+        if (lesson.room) card.appendChild(roomLine);
+        if (lesson.teacher) card.appendChild(teacherLine);
+        if (lesson.note) card.appendChild(noteLine);
+        card.appendChild(more);
 
         container.appendChild(card);
     });
 }
+
 
 /* === 6. Переключатель вкладок "Сегодня / Завтра" === */
 

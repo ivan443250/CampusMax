@@ -425,48 +425,93 @@ body {
 
 .schedule-tabs {
     display: flex;
-    gap: 8px;
-    margin-bottom: 10px;
+    border-bottom: 1px solid #e5e7eb; /* тонкая линия под вкладками */
+    margin-bottom: 6px;
 }
 
 .schedule-tab-btn {
     flex: 1;
-    border-radius: 999px;
+    background: transparent;
     border: none;
-    padding: 8px 10px;
-    font-size: 14px;
+    padding: 8px 0 6px;
+    font-size: 16px;
     cursor: pointer;
-    background: #eef2ff;
-    color: #2563eb;
+    color: #9ca3af;              /* серый текст по умолчанию */
+    position: relative;
 }
 
 .schedule-tab-btn--active {
-    background: #2563eb;
-    color: #ffffff;
+    color: #2563eb;
+}
+
+.schedule-tab-btn--active::after {
+    content: "";
+    position: absolute;
+    left: 15%;
+    right: 15%;
+    bottom: -1px;
+    height: 2px;
+    background: #2563eb;         /* синяя полоска под активной вкладкой */
+    border-radius: 999px;
 }
 
 /* Список пар */
 
 .schedule-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    padding: 4px 0;
 }
 
 /* Карточка пары (упрощённая) */
 
 .lesson-card {
-    border-radius: 10px;
-    padding: 8px 10px;
-    background: #ffffff;
-    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+    padding: 8px 12px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
     font-size: 12px;
+}
+
+.lesson-card:last-child {
+    border-bottom: none;
+}
+
+.lesson-header {
+    font-size: 11px;
+    color: #2563eb;              /* "3 пара (13:00 — 14:30)" синяя */
+    margin-bottom: 3px;
 }
 
 .lesson-time {
     font-size: 11px;
     color: #2563eb;
     margin-bottom: 3px;
+}
+
+.lesson-subject {
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: #111827;
+}
+
+.lesson-meta {
+    color: #6b7280;
+    margin-bottom: 2px;
+}
+
+.lesson-note {
+    color: #6b7280;
+    margin-bottom: 2px;
+}
+
+.lesson-more-link {
+    font-size: 11px;
+    color: #2563eb;
+    cursor: pointer;
 }
 
 .lesson-subject {
