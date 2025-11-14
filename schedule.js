@@ -1,21 +1,22 @@
 // schedule.js
-// Отвечает только за расписание на главной ("Сегодня / Завтра")
+// Работает с новой схемой расписания:
+//
+// universities/{universityId}/schedule/{even|odd}/days/{1..7}
+//   lessons: [ { id, group, startTime, endTime, subject, ... }, ... ]
 
 import { getApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import {
     getFirestore,
-    collection,
-    getDocs,
-    doc,
-    getDoc
+    getDoc,
+    doc
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
-/* === 1. Получаем db из уже инициализированного приложения === */
+/* === 1. Инициализация Firestore из уже созданного приложения (auth.js) === */
 
 let db = null;
 
 try {
-    const app = getApp();          // берём приложение, которое уже создал auth.js
+    const app = getApp();          // приложение уже инициализировал auth.js
     db = getFirestore(app);
 } catch (e) {
     console.error("schedule.js: Firebase app не найден. Убедись, что auth.js подключён раньше.", e);
@@ -25,24 +26,27 @@ try {
 
 const SESSION_UID_KEY = "campusMaxUserUid"; // тот же ключ, что и в auth.js
 
-const WEEKDAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-const WEEKDAY_NAMES_RU = {
-    sunday: "Воскресенье",
-    monday: "Понедельник",
-    tuesday: "Вторник",
-    wednesday: "Среда",
-    thursday: "Четверг",
-    friday: "Пятница",
-    saturday: "Суббота"
-};
+// JS getDay(): 0 - воскресенье, 1 - понедельник, ... 6 - суббота
+const WEEKDAY_NAMES_RU = [
+    "Воскресенье",
+    "Понедельник",
+    "Вторник",
+    "Среда",
+    "Четверг",
+    "Пятница",
+    "Суббота"
+];
 
+/** UID из “сессии” (localStorage) */
 function getSessionUid() {
     return localStorage.getItem(SESSION_UID_KEY);
 }
 
-function getWeekdayKey(date) {
-    const idx = date.getDay();
-    return WEEKDAY_KEYS[idx];
+/** Индекс дня для расписания: 1..7 (1 - понедельник, 7 - воскресенье) */
+function getDayIndex1to7(date) {
+    const jsDay = date.getDay(); // 0..6 (0 - воскресенье)
+    if (jsDay === 0) return 7;   // воскресенье -> 7
+    return jsDay;                // понедельник(1)..суббота(6)
 }
 
 /**
@@ -72,11 +76,11 @@ function getWeekTypeForDate(date, baseDateStr, baseWeekType) {
     }
 }
 
-/* === 3. Инициализация расписания при загрузке app.html === */
+/* === 3. Старт расписания при загрузке home.html === */
 
 document.addEventListener("DOMContentLoaded", () => {
-    // если на странице нет контейнера расписания — просто выходим
     const todayContainer = document.getElementById("scheduleToday");
+    // если мы не на странице с расписанием, просто выходим
     if (!todayContainer || !db) {
         return;
     }
@@ -89,23 +93,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /**
  * Инициализация: берём пользователя из users/{uid},
- * узнаём его университет и группу, читаем конфиг вуза и грузим "сегодня/завтра".
+ * читаем его universityId и group, потом конфиг вуза и подгружаем сегодня/завтра.
  */
 async function initScheduleForCurrentUser() {
     const uid = getSessionUid();
     if (!uid) {
-        // защиту/редирект делает auth.js, здесь просто не продолжаем
         console.warn("schedule.js: нет uid в сессии, расписание не загружается.");
         return;
     }
 
-    // профиль пользователя
+    // профиль пользователя: users/{uid}
     const userSnap = await getDoc(doc(db, "users", uid));
     if (!userSnap.exists()) {
         throw new Error("Профиль пользователя не найден");
     }
 
-    const profile = userSnap.data();  // ожидаем universityId и group
+    const profile = userSnap.data(); // ожидаем universityId и group
     const universityId = profile.universityId;
     const groupId = profile.group;
 
@@ -114,11 +117,11 @@ async function initScheduleForCurrentUser() {
         return;
     }
 
-    // читаем настройки вуза (дата начала семестра и тип первой недели)
+    // настройки вуза: universities/{universityId}
     const uniSnap = await getDoc(doc(db, "universities", universityId));
     const uniData = uniSnap.exists() ? uniSnap.data() : {};
 
-    const scheduleStartDate = uniData.scheduleStartDate;       // "2024-09-02"
+    const scheduleStartDate = uniData.scheduleStartDate;         // "2024-09-02"
     const scheduleFirstWeekType = uniData.scheduleFirstWeekType; // "even" / "odd"
 
     await loadScheduleForTodayTomorrow({
@@ -140,8 +143,8 @@ async function loadScheduleForTodayTomorrow(config) {
     const todayWeekType = getWeekTypeForDate(now, scheduleStartDate, scheduleFirstWeekType);
     const tomorrowWeekType = getWeekTypeForDate(tomorrow, scheduleStartDate, scheduleFirstWeekType);
 
-    const todayKey = getWeekdayKey(now);
-    const tomorrowKey = getWeekdayKey(tomorrow);
+    const todayIndex = getDayIndex1to7(now);       // 1..7
+    const tomorrowIndex = getDayIndex1to7(tomorrow);
 
     const currentWeekLabel = document.getElementById("currentWeekLabel");
     const currentDayLabel = document.getElementById("currentDayLabel");
@@ -151,63 +154,81 @@ async function loadScheduleForTodayTomorrow(config) {
             "Сейчас " + (todayWeekType === "even" ? "четная" : "нечетная") + " неделя";
     }
     if (currentDayLabel) {
-        currentDayLabel.textContent = WEEKDAY_NAMES_RU[todayKey] || "";
+        const jsDay = now.getDay(); // для названия дня
+        currentDayLabel.textContent = WEEKDAY_NAMES_RU[jsDay] || "";
     }
 
     const todayContainer = document.getElementById("scheduleToday");
     const tomorrowContainer = document.getElementById("scheduleTomorrow");
 
     if (todayContainer) {
-        const lessonsToday = await loadDayLessons(universityId, groupId, todayWeekType, todayKey);
+        const lessonsToday = await loadDayLessons(universityId, todayWeekType, todayIndex, groupId);
         renderLessonsList(todayContainer, lessonsToday);
     }
 
     if (tomorrowContainer) {
-        const lessonsTomorrow = await loadDayLessons(universityId, groupId, tomorrowWeekType, tomorrowKey);
+        const lessonsTomorrow = await loadDayLessons(universityId, tomorrowWeekType, tomorrowIndex, groupId);
         renderLessonsList(tomorrowContainer, lessonsTomorrow);
     }
 }
 
 /**
- * Загружает пары для конкретной недели и дня:
- * universities/{universityId}/groups/{groupId}/weeks/{weekType}/days/{weekdayKey}/lessons
+ * Загружает пары для конкретной недели и дня из новой структуры:
+ *
+ * universities/{universityId}/schedule/{weekType}/days/{dayIndex}
+ *   lessons: [ { group, startTime, endTime, ... }, ... ]
+ *
+ * Фильтрует пары по группе студента.
  */
-async function loadDayLessons(universityId, groupId, weekType, weekdayKey) {
-    const lessons = [];
+async function loadDayLessons(universityId, weekType, dayIndex1to7, groupId) {
+    const result = [];
 
     try {
-        const lessonsRef = collection(
+        const dayDocRef = doc(
             db,
             "universities",
             universityId,
-            "groups",
-            groupId,
-            "weeks",
-            weekType,        // "even" или "odd"
+            "schedule",
+            weekType,              // "even" или "odd"
             "days",
-            weekdayKey,      // "monday", "tuesday", ...
-            "lessons"
+            String(dayIndex1to7)   // "1".."7"
         );
 
-        const snap = await getDocs(lessonsRef);
-        snap.forEach((docSnap) => {
-            lessons.push(docSnap.data());
+        const daySnap = await getDoc(dayDocRef);
+        if (!daySnap.exists()) {
+            return result;
+        }
+
+        const data = daySnap.data();
+        const lessonsArray = Array.isArray(data.lessons) ? data.lessons : [];
+
+        // фильтр по группе: lesson.group может быть строкой или массивом
+        const filtered = lessonsArray.filter((lesson) => {
+            if (!groupId) return true;
+            if (lesson.group == null) return true;
+
+            if (Array.isArray(lesson.group)) {
+                return lesson.group.includes(groupId);
+            }
+            return lesson.group === groupId;
         });
 
-        // сортируем по номеру пары/order и времени
-        lessons.sort((a, b) => {
-            const ao = a.order ?? 0;
-            const bo = b.order ?? 0;
+        // сортируем по номеру пары / времени
+        filtered.sort((a, b) => {
+            const ao = a.order ?? a.pairNumber ?? 0;
+            const bo = b.order ?? b.pairNumber ?? 0;
             if (ao !== bo) return ao - bo;
-            const at = a.start_time || "";
-            const bt = b.start_time || "";
+
+            const at = (a.startTime || a.start_time || "");
+            const bt = (b.startTime || b.start_time || "");
             return at.localeCompare(bt);
         });
-    } catch (e) {
-        console.error("Ошибка загрузки расписания:", e);
-    }
 
-    return lessons;
+        return filtered;
+    } catch (e) {
+        console.error("Ошибка загрузки расписания (dayIndex=" + dayIndex1to7 + "):", e);
+        return result;
+    }
 }
 
 /* === 5. Рендер карточек пар === */
@@ -228,13 +249,16 @@ function renderLessonsList(container, lessons) {
         const card = document.createElement("div");
         card.className = "lesson-card";
 
+        const start = lesson.startTime || lesson.start_time || "";
+        const end = lesson.endTime || lesson.end_time || "";
+
         const time = document.createElement("div");
         time.className = "lesson-time";
-        time.textContent = `${lesson.start_time || ""} — ${lesson.end_time || ""}`;
+        time.textContent = `${start} — ${end}`;
 
         const subject = document.createElement("div");
         subject.className = "lesson-subject";
-        subject.textContent = lesson.subject || "";
+        subject.textContent = lesson.subject || lesson.title || "";
 
         const room = document.createElement("div");
         room.className = "lesson-room";
