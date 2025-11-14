@@ -536,3 +536,71 @@ body {
     width: 100%;
     margin-top: 14px;
 }
+
+/* заголовок на странице "все расписание" */
+.full-schedule-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.back-link {
+    border: none;
+    background: transparent;
+    color: #2563eb;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0;
+}
+
+/* переключатель четная / нечетная */
+
+.week-toggle {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 999px;
+    background: #eef2ff;
+    margin-bottom: 10px;
+}
+
+.week-toggle-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    background: transparent;
+    color: #2563eb;
+    opacity: 0.6;
+}
+
+.week-toggle-btn--active {
+    background: #2563eb;
+    color: #ffffff;
+    opacity: 1;
+}
+
+/* контейнер со всеми днями */
+
+.full-schedule-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 90px; /* под нижнее меню */
+}
+
+/* заголовок дня ("Понедельник", "Вторник"... ) */
+
+.full-schedule-day {
+    padding-top: 4px;
+}
+
+.full-schedule-day-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2563eb;
+    margin: 4px 0 4px;
+}
+
+/* используем уже существующий .schedule-list и .lesson-card */
