@@ -1,0 +1,101 @@
+<!-- home.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>КампусMAX — главная</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="styles.css">
+    <!-- Сначала auth.js (сессия + защита), потом расписание -->
+    <script type="module" src="auth.js"></script>
+    <script type="module" src="schedule.js"></script>
+</head>
+<body class="page">
+<div class="phone-shell">
+
+    <!-- Верхняя шапка: логотип вуза + аватар -->
+    <header class="home-top">
+        <div class="home-top-left">
+            <!-- логотип вуза -->
+            <img class="home-top-logo" src="img/university-logo.svg" alt="Логотип вуза">
+        </div>
+        <div class="home-top-right">
+            <!-- аватар/иконка профиля -->
+            <img class="home-top-avatar" src="img/user-avatar.svg" alt="Профиль">
+        </div>
+    </header>
+
+    <main class="app-content home-main">
+        <!-- “Сейчас четная неделя / Четверг” -->
+        <section class="schedule-header">
+            <p class="week-label" id="currentWeekLabel">Сейчас неделя…</p>
+            <p class="day-label" id="currentDayLabel">Сегодня …</p>
+        </section>
+
+        <!-- Переключатель “Сегодня / Завтра” -->
+        <div class="schedule-tabs">
+            <button class="schedule-tab-btn schedule-tab-btn--active"
+                    type="button"
+                    data-schedule-tab="today">
+                Сегодня
+            </button>
+            <button class="schedule-tab-btn"
+                    type="button"
+                    data-schedule-tab="tomorrow">
+                Завтра
+            </button>
+        </div>
+
+        <!-- Список пар на сегодня -->
+        <div id="scheduleToday" class="schedule-list"></div>
+
+        <!-- Список пар на завтра -->
+        <div id="scheduleTomorrow" class="schedule-list" style="display:none;"></div>
+
+        <!-- Кнопка “Все расписание” (пока без перехода) -->
+        <button class="btn btn-primary full-schedule-btn" type="button">
+            Все расписание
+        </button>
+    </main>
+
+    <!-- Нижнее меню -->
+    <div class="bottom-nav-wrapper">
+        <nav class="bottom-nav" aria-label="Нижнее меню">
+            <button class="nav-item is-active" type="button">
+                <span class="nav-icon">
+                    <img src="img/icon-home.svg" alt="Главная">
+                </span>
+                <span class="nav-label">Главная</span>
+            </button>
+
+            <button class="nav-item" type="button" onclick="window.location.href='events.html'">
+                <span class="nav-icon">
+                    <img src="img/icon-events.svg" alt="События">
+                </span>
+                <span class="nav-label">События</span>
+            </button>
+
+            <button class="nav-item nav-item-center" type="button" onclick="window.location.href='bot.html'">
+                <span class="nav-icon">
+                    <img src="img/icon-bot.svg" alt="Бот">
+                </span>
+            </button>
+
+            <button class="nav-item" type="button" onclick="window.location.href='docs.html'">
+                <span class="nav-icon">
+                    <img src="img/icon-docs.svg" alt="Документы">
+                </span>
+                <span class="nav-label">Документы</span>
+            </button>
+
+            <button class="nav-item" type="button" onclick="window.location.href='other.html'">
+                <span class="nav-icon">
+                    <img src="img/icon-payments.svg" alt="Другое">
+                </span>
+                <span class="nav-label">Другое</span>
+            </button>
+        </nav>
+    </div>
+</div>
+</body>
+</html>

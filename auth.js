@@ -99,7 +99,7 @@ function setupLoginForm(form) {
 
             // успех — сохраняем “сессию” и идём в приложение
             saveSession(docSnap.id);
-            window.location.href = "app.html";
+            window.location.href = "home.html";
         } catch (error) {
             console.error("Ошибка при попытке входа:", error);
             showError(errorBox, "Ошибка соединения с базой. Попробуйте позже.");

@@ -1,0 +1,75 @@
+<!-- events.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>КампусMAX — события</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="auth.js"></script>
+</head>
+<body class="page">
+<div class="phone-shell">
+
+    <header class="home-top">
+        <div class="home-top-left">
+            <img class="home-top-logo" src="img/university-logo.svg" alt="Логотип вуза">
+        </div>
+        <div class="home-top-right">
+            <img class="home-top-avatar" src="img/user-avatar.svg" alt="Профиль">
+        </div>
+    </header>
+
+    <main class="app-content home-main">
+        <h1 class="app-heading">События</h1>
+        <p class="app-subheading">
+            Здесь позже будет список мероприятий, новостей и важных дат вашего вуза.
+        </p>
+
+        <!-- Пока просто заглушка -->
+        <p style="font-size:14px;color:#6b7280;">
+            Разработка этого раздела в процессе. Администратор вуза сможет
+            добавлять сюда события через отдельный административный сайт.
+        </p>
+    </main>
+
+    <div class="bottom-nav-wrapper">
+        <nav class="bottom-nav" aria-label="Нижнее меню">
+            <button class="nav-item" type="button" onclick="window.location.href='home.html'">
+                <span class="nav-icon">
+                    <img src="img/icon-home.svg" alt="Главная">
+                </span>
+                <span class="nav-label">Главная</span>
+            </button>
+
+            <button class="nav-item is-active" type="button">
+                <span class="nav-icon">
+                    <img src="img/icon-events.svg" alt="События">
+                </span>
+                <span class="nav-label">События</span>
+            </button>
+
+            <button class="nav-item nav-item-center" type="button" onclick="window.location.href='bot.html'">
+                <span class="nav-icon">
+                    <img src="img/icon-bot.svg" alt="Бот">
+                </span>
+            </button>
+
+            <button class="nav-item" type="button" onclick="window.location.href='docs.html'">
+                <span class="nav-icon">
+                    <img src="img/icon-docs.svg" alt="Документы">
+                </span>
+                <span class="nav-label">Документы</span>
+            </button>
+
+            <button class="nav-item" type="button" onclick="window.location.href='other.html'">
+                <span class="nav-icon">
+                    <img src="img/icon-payments.svg" alt="Другое">
+                </span>
+                <span class="nav-label">Другое</span>
+            </button>
+        </nav>
+    </div>
+</div>
+</body>
+</html>
