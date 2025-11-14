@@ -1,16 +1,15 @@
 // schedule.js
-// Работает с новой схемой расписания:
-//
+// Чтение расписания из Firestore по структуре:
 // universities/{universityId}/schedule/{even|odd}/days/{1..7}
 //   lessons: [ { id, group, startTime, endTime, subject, ... }, ... ]
-//
-// + кэширование расписания на сегодня/завтра в localStorage
 
 import { getApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import {
     getFirestore,
-    getDoc,
-    doc
+    collection,
+    getDocs,
+    doc,
+    getDoc
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
 /* === 1. Инициализация Firestore из уже созданного приложения (auth.js) === */
@@ -18,7 +17,7 @@ import {
 let db = null;
 
 try {
-    const app = getApp();          // приложение уже инициализировал auth.js
+    const app = getApp(); // приложение уже инициализировал auth.js
     db = getFirestore(app);
 } catch (e) {
     console.error("schedule.js: Firebase app не найден. Убедись, что auth.js подключён раньше.", e);
@@ -26,8 +25,7 @@ try {
 
 /* === 2. Константы и утилиты === */
 
-const SESSION_UID_KEY = "campusMaxUserUid";            // тот же ключ, что и в auth.js
-const SCHEDULE_CACHE_KEY = "campusMaxScheduleCache";   // ключ для кэша расписания
+const SESSION_UID_KEY = "campusMaxUserUid"; // тот же ключ, что и в auth.js
 
 // JS getDay(): 0 - воскресенье, 1 - понедельник, ... 6 - суббота
 const WEEKDAY_NAMES_RU = [
@@ -78,37 +76,12 @@ function getWeekTypeForDate(date, baseDateStr, baseWeekType) {
     }
 }
 
-/** ISO-дата "YYYY-MM-DD" без времени */
-function toDateString(date) {
-    return date.toISOString().slice(0, 10);
-}
-
-/* --- кэш расписания в localStorage --- */
-
-function readScheduleCache() {
-    try {
-        const raw = localStorage.getItem(SCHEDULE_CACHE_KEY);
-        if (!raw) return null;
-        return JSON.parse(raw);
-    } catch {
-        return null;
-    }
-}
-
-function writeScheduleCache(cache) {
-    try {
-        localStorage.setItem(SCHEDULE_CACHE_KEY, JSON.stringify(cache));
-    } catch {
-        // если не получилось записать — просто молча игнорируем
-    }
-}
-
 /* === 3. Старт расписания при загрузке home.html === */
 
 document.addEventListener("DOMContentLoaded", () => {
     const todayContainer = document.getElementById("scheduleToday");
-    // если мы не на странице с расписанием, просто выходим
     if (!todayContainer || !db) {
+        // не на странице с расписанием или нет Firebase
         return;
     }
 
@@ -119,8 +92,8 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /**
- * Инициализация: берём пользователя из users/{uid},
- * читаем его universityId и group, потом конфиг вуза и подгружаем сегодня/завтра.
+ * Берём текущего пользователя, узнаём его universityId и group,
+ * читаем конфиг вуза и подгружаем расписание "Сегодня / Завтра".
  */
 async function initScheduleForCurrentUser() {
     const uid = getSessionUid();
@@ -152,7 +125,6 @@ async function initScheduleForCurrentUser() {
     const scheduleFirstWeekType = uniData.scheduleFirstWeekType; // "even" / "odd"
 
     await loadScheduleForTodayTomorrow({
-        uid,
         universityId,
         groupId,
         scheduleStartDate,
@@ -160,29 +132,92 @@ async function initScheduleForCurrentUser() {
     });
 }
 
-/* === 4. Загрузка расписания: сегодня / завтра с кэшированием === */
+/* === 4. Загрузка расписания недели + выбор сегодня/завтра === */
+
+/**
+ * Загружает всю неделю для заданного вуза и типа недели ("even"/"odd"),
+ * аналогично функции loadSchedule в admin app.js:
+ *
+ * universities/{universityId}/schedule/{weekKey}/days/{1..7}
+ *   lessons: [ ... ]
+ *
+ * Возвращает объект: { "1": [lessons], "2": [...], ... }.
+ */
+async function loadWeekSchedule(universityId, weekKey) {
+    const byDay = {};
+
+    try {
+        const daysRef = collection(
+            db,
+            "universities",
+            universityId,
+            "schedule",
+            weekKey,
+            "days"
+        );
+
+        const snapshot = await getDocs(daysRef);
+
+        snapshot.forEach((docSnap) => {
+            const dayKey = docSnap.id; // "1".."7"
+            const data = docSnap.data() || {};
+            let lessons = Array.isArray(data.lessons) ? data.lessons : [];
+            byDay[dayKey] = lessons;
+        });
+    } catch (e) {
+        console.error("Ошибка загрузки недели расписания:", e);
+    }
+
+    return byDay;
+}
+
+/** Фильтр по группе + сортировка по номеру пары/времени */
+function prepareLessonsForDay(lessons, groupId) {
+    const filtered = lessons.filter((lesson) => {
+        if (!groupId) return true;
+        if (lesson.group == null) return true;
+
+        if (Array.isArray(lesson.group)) {
+            return lesson.group.includes(groupId);
+        }
+        return lesson.group === groupId;
+    });
+
+    filtered.sort((a, b) => {
+        const ao = a.order ?? a.pairNumber ?? 0;
+        const bo = b.order ?? b.pairNumber ?? 0;
+        if (ao !== bo) return ao - bo;
+
+        const at = a.startTime || a.start_time || "";
+        const bt = b.startTime || b.start_time || "";
+        return at.localeCompare(bt);
+    });
+
+    return filtered;
+}
 
 async function loadScheduleForTodayTomorrow(config) {
-    const { uid, universityId, groupId, scheduleStartDate, scheduleFirstWeekType } = config;
+    const { universityId, groupId, scheduleStartDate, scheduleFirstWeekType } = config;
 
     const now = new Date();
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    const todayWeekType = getWeekTypeForDate(now, scheduleStartDate, scheduleFirstWeekType);
-    const tomorrowWeekType = getWeekTypeForDate(tomorrow, scheduleStartDate, scheduleFirstWeekType);
-
     const todayIndex = getDayIndex1to7(now);       // 1..7
     const tomorrowIndex = getDayIndex1to7(tomorrow);
 
-    const todayDateStr = toDateString(now);
-    const tomorrowDateStr = toDateString(tomorrow);
+    const todayWeekKey = getWeekTypeForDate(now, scheduleStartDate, scheduleFirstWeekType); // "even"/"odd"
+    const tomorrowWeekKey = getWeekTypeForDate(
+        tomorrow,
+        scheduleStartDate,
+        scheduleFirstWeekType
+    );
 
     const currentWeekLabel = document.getElementById("currentWeekLabel");
     const currentDayLabel = document.getElementById("currentDayLabel");
 
     if (currentWeekLabel) {
         currentWeekLabel.textContent =
-            "Сейчас " + (todayWeekType === "even" ? "четная" : "нечетная") + " неделя";
+            "Сейчас " + (todayWeekKey === "even" ? "четная" : "нечетная") + " неделя";
     }
     if (currentDayLabel) {
         const jsDay = now.getDay(); // 0..6
@@ -192,127 +227,33 @@ async function loadScheduleForTodayTomorrow(config) {
     const todayContainer = document.getElementById("scheduleToday");
     const tomorrowContainer = document.getElementById("scheduleTomorrow");
 
-    /* ---------- определяем, это reload или обычная навигация ---------- */
-    let isReload = false;
-    try {
-        const navEntries = performance.getEntriesByType
-            ? performance.getEntriesByType("navigation")
-            : null;
-        const navType = navEntries && navEntries[0] && navEntries[0].type;
-        isReload = navType === "reload";
-    } catch {
-        // если что-то пошло не так — считаем, что не reload
+    // Загружаем недели. Если сегодня и завтра в одной неделе — грузим её один раз.
+    let scheduleTodayWeek = {};
+    let scheduleTomorrowWeek = {};
+
+    if (todayWeekKey === tomorrowWeekKey) {
+        scheduleTodayWeek = await loadWeekSchedule(universityId, todayWeekKey);
+        scheduleTomorrowWeek = scheduleTodayWeek;
+    } else {
+        const [weekToday, weekTomorrow] = await Promise.all([
+            loadWeekSchedule(universityId, todayWeekKey),
+            loadWeekSchedule(universityId, tomorrowWeekKey)
+        ]);
+        scheduleTodayWeek = weekToday;
+        scheduleTomorrowWeek = weekTomorrow;
     }
 
-    /* ---------- 1) пробуем кэш ТОЛЬКО если это не reload ---------- */
-    if (!isReload) {
-        const cache = readScheduleCache();
-        const cacheIsValid =
-            cache &&
-            cache.uid === uid &&
-            cache.universityId === universityId &&
-            cache.groupId === groupId &&
-            cache.todayDate === todayDateStr &&
-            cache.tomorrowDate === tomorrowDateStr &&
-            cache.todayWeekType === todayWeekType &&
-            cache.tomorrowWeekType === tomorrowWeekType;
+    const todayLessonsAll = scheduleTodayWeek[String(todayIndex)] || [];
+    const tomorrowLessonsAll = scheduleTomorrowWeek[String(tomorrowIndex)] || [];
 
-        if (cacheIsValid) {
-            if (todayContainer) {
-                renderLessonsList(todayContainer, cache.todayLessons || []);
-            }
-            if (tomorrowContainer) {
-                renderLessonsList(tomorrowContainer, cache.tomorrowLessons || []);
-            }
-            // кэш сработал — в Firestore не идём
-            return;
-        }
-    }
-
-    /* ---------- 2) кэша нет / reload / устарел — грузим из Firestore ---------- */
-    const [lessonsToday, lessonsTomorrow] = await Promise.all([
-        loadDayLessons(universityId, todayWeekType, todayIndex, groupId),
-        loadDayLessons(universityId, tomorrowWeekType, tomorrowIndex, groupId)
-    ]);
+    const todayLessons = prepareLessonsForDay(todayLessonsAll, groupId);
+    const tomorrowLessons = prepareLessonsForDay(tomorrowLessonsAll, groupId);
 
     if (todayContainer) {
-        renderLessonsList(todayContainer, lessonsToday);
+        renderLessonsList(todayContainer, todayLessons);
     }
     if (tomorrowContainer) {
-        renderLessonsList(tomorrowContainer, lessonsTomorrow);
-    }
-
-    // перезаписываем кэш
-    writeScheduleCache({
-        uid,
-        universityId,
-        groupId,
-        todayDate: todayDateStr,
-        tomorrowDate: tomorrowDateStr,
-        todayWeekType,
-        tomorrowWeekType,
-        todayLessons: lessonsToday,
-        tomorrowLessons: lessonsTomorrow
-    });
-}
-
-
-/**
- * Загружает пары для конкретной недели и дня из новой структуры:
- *
- * universities/{universityId}/schedule/{weekType}/days/{dayIndex}
- *   lessons: [ { group, startTime, endTime, ... }, ... ]
- *
- * Фильтрует пары по группе студента.
- */
-async function loadDayLessons(universityId, weekType, dayIndex1to7, groupId) {
-    const result = [];
-
-    try {
-        const dayDocRef = doc(
-            db,
-            "universities",
-            universityId,
-            "schedule",
-            weekType,              // "even" или "odd"
-            "days",
-            String(dayIndex1to7)   // "1".."7"
-        );
-
-        const daySnap = await getDoc(dayDocRef);
-        if (!daySnap.exists()) {
-            return result;
-        }
-
-        const data = daySnap.data();
-        const lessonsArray = Array.isArray(data.lessons) ? data.lessons : [];
-
-        // фильтр по группе: lesson.group может быть строкой или массивом
-        const filtered = lessonsArray.filter((lesson) => {
-            if (!groupId) return true;
-            if (lesson.group == null) return true;
-
-            if (Array.isArray(lesson.group)) {
-                return lesson.group.includes(groupId);
-            }
-            return lesson.group === groupId;
-        });
-
-        // сортируем по номеру пары / времени
-        filtered.sort((a, b) => {
-            const ao = a.order ?? a.pairNumber ?? 0;
-            const bo = b.order ?? b.pairNumber ?? 0;
-            if (ao !== bo) return ao - bo;
-
-            const at = (a.startTime || a.start_time || "");
-            const bt = (b.startTime || b.start_time || "");
-            return at.localeCompare(bt);
-        });
-
-        return filtered;
-    } catch (e) {
-        console.error("Ошибка загрузки расписания (dayIndex=" + dayIndex1to7 + "):", e);
-        return result;
+        renderLessonsList(tomorrowContainer, tomorrowLessons);
     }
 }
 
@@ -344,9 +285,9 @@ function renderLessonsList(container, lessons) {
         header.className = "lesson-header";
 
         if (pairNumber != null && start && end) {
-            header.textContent = `${pairNumber} пара (${start} — ${end})`;
+            header.textContent = pairNumber + " пара (" + start + " — " + end + ")";
         } else if (start || end) {
-            header.textContent = `${start} — ${end}`;
+            header.textContent = start + " — " + end;
         }
 
         // 2-я строка: название предмета
