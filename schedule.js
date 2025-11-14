@@ -3,6 +3,8 @@
 //
 // universities/{universityId}/schedule/{even|odd}/days/{1..7}
 //   lessons: [ { id, group, startTime, endTime, subject, ... }, ... ]
+//
+// + кэширование расписания на сегодня/завтра в localStorage
 
 import { getApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
 import {
@@ -24,7 +26,8 @@ try {
 
 /* === 2. Константы и утилиты === */
 
-const SESSION_UID_KEY = "campusMaxUserUid"; // тот же ключ, что и в auth.js
+const SESSION_UID_KEY = "campusMaxUserUid";            // тот же ключ, что и в auth.js
+const SCHEDULE_CACHE_KEY = "campusMaxScheduleCache";   // ключ для кэша расписания
 
 // JS getDay(): 0 - воскресенье, 1 - понедельник, ... 6 - суббота
 const WEEKDAY_NAMES_RU = [
@@ -37,7 +40,6 @@ const WEEKDAY_NAMES_RU = [
     "Суббота"
 ];
 
-/** UID из “сессии” (localStorage) */
 function getSessionUid() {
     return localStorage.getItem(SESSION_UID_KEY);
 }
@@ -73,6 +75,31 @@ function getWeekTypeForDate(date, baseDateStr, baseWeekType) {
         return isSameParity ? "even" : "odd";
     } else {
         return isSameParity ? "odd" : "even";
+    }
+}
+
+/** ISO-дата "YYYY-MM-DD" без времени */
+function toDateString(date) {
+    return date.toISOString().slice(0, 10);
+}
+
+/* --- кэш расписания в localStorage --- */
+
+function readScheduleCache() {
+    try {
+        const raw = localStorage.getItem(SCHEDULE_CACHE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+}
+
+function writeScheduleCache(cache) {
+    try {
+        localStorage.setItem(SCHEDULE_CACHE_KEY, JSON.stringify(cache));
+    } catch {
+        // если не получилось записать — просто молча игнорируем
     }
 }
 
@@ -125,6 +152,7 @@ async function initScheduleForCurrentUser() {
     const scheduleFirstWeekType = uniData.scheduleFirstWeekType; // "even" / "odd"
 
     await loadScheduleForTodayTomorrow({
+        uid,
         universityId,
         groupId,
         scheduleStartDate,
@@ -132,10 +160,10 @@ async function initScheduleForCurrentUser() {
     });
 }
 
-/* === 4. Загрузка расписания: сегодня / завтра === */
+/* === 4. Загрузка расписания: сегодня / завтра с кэшированием === */
 
 async function loadScheduleForTodayTomorrow(config) {
-    const { universityId, groupId, scheduleStartDate, scheduleFirstWeekType } = config;
+    const { uid, universityId, groupId, scheduleStartDate, scheduleFirstWeekType } = config;
 
     const now = new Date();
     const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -145,6 +173,9 @@ async function loadScheduleForTodayTomorrow(config) {
 
     const todayIndex = getDayIndex1to7(now);       // 1..7
     const tomorrowIndex = getDayIndex1to7(tomorrow);
+
+    const todayDateStr = toDateString(now);
+    const tomorrowDateStr = toDateString(tomorrow);
 
     const currentWeekLabel = document.getElementById("currentWeekLabel");
     const currentDayLabel = document.getElementById("currentDayLabel");
@@ -161,15 +192,53 @@ async function loadScheduleForTodayTomorrow(config) {
     const todayContainer = document.getElementById("scheduleToday");
     const tomorrowContainer = document.getElementById("scheduleTomorrow");
 
-    if (todayContainer) {
-        const lessonsToday = await loadDayLessons(universityId, todayWeekType, todayIndex, groupId);
-        renderLessonsList(todayContainer, lessonsToday);
+    // --- 1) пробуем взять из кэша ---
+    const cache = readScheduleCache();
+    const cacheIsValid =
+        cache &&
+        cache.uid === uid &&
+        cache.universityId === universityId &&
+        cache.groupId === groupId &&
+        cache.todayDate === todayDateStr &&
+        cache.tomorrowDate === tomorrowDateStr &&
+        cache.todayWeekType === todayWeekType &&
+        cache.tomorrowWeekType === tomorrowWeekType;
+
+    if (cacheIsValid) {
+        if (todayContainer) {
+            renderLessonsList(todayContainer, cache.todayLessons || []);
+        }
+        if (tomorrowContainer) {
+            renderLessonsList(tomorrowContainer, cache.tomorrowLessons || []);
+        }
+        // Всё, кэш сработал, сетевые запросы не делаем
+        return;
     }
 
+    // --- 2) кэша нет или он устарел — грузим из Firestore и перезаписываем кэш ---
+    const [lessonsToday, lessonsTomorrow] = await Promise.all([
+        loadDayLessons(universityId, todayWeekType, todayIndex, groupId),
+        loadDayLessons(universityId, tomorrowWeekType, tomorrowIndex, groupId)
+    ]);
+
+    if (todayContainer) {
+        renderLessonsList(todayContainer, lessonsToday);
+    }
     if (tomorrowContainer) {
-        const lessonsTomorrow = await loadDayLessons(universityId, tomorrowWeekType, tomorrowIndex, groupId);
         renderLessonsList(tomorrowContainer, lessonsTomorrow);
     }
+
+    writeScheduleCache({
+        uid,
+        universityId,
+        groupId,
+        todayDate: todayDateStr,
+        tomorrowDate: tomorrowDateStr,
+        todayWeekType,
+        tomorrowWeekType,
+        todayLessons: lessonsToday,
+        tomorrowLessons: lessonsTomorrow
+    });
 }
 
 /**
@@ -290,12 +359,10 @@ function renderLessonsList(container, lessons) {
             noteLine.textContent = lesson.note;
         }
 
-        // "Подробнее" как на скрине (пока просто текст, без логики)
         const more = document.createElement("div");
         more.className = "lesson-more-link";
         more.textContent = "Подробнее";
 
-        // собираем карточку
         if (header.textContent) card.appendChild(header);
         card.appendChild(subject);
         if (lesson.room) card.appendChild(roomLine);
@@ -306,7 +373,6 @@ function renderLessonsList(container, lessons) {
         container.appendChild(card);
     });
 }
-
 
 /* === 6. Переключатель вкладок "Сегодня / Завтра" === */
 

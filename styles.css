@@ -481,9 +481,10 @@ body {
 }
 
 .lesson-header {
-    font-size: 11px;
+    font-size: 15px;
     color: #2563eb;              /* "3 пара (13:00 — 14:30)" синяя */
     margin-bottom: 3px;
+    font-weight: 900;
 }
 
 .lesson-time {
@@ -493,14 +494,17 @@ body {
 }
 
 .lesson-subject {
-    font-weight: 600;
+    font-weight: 900;
     margin-bottom: 2px;
     color: #111827;
+    font-size: 20px;
 }
 
 .lesson-meta {
     color: #6b7280;
     margin-bottom: 2px;
+    font-size: 14px;
+    font-weight: 700;
 }
 
 .lesson-note {
@@ -532,63 +536,3 @@ body {
     width: 100%;
     margin-top: 14px;
 }
-
-/* --- вкладки "Сегодня / Завтра" --- */
-.schedule-tab-btn {
-    flex: 1;
-    background: transparent;
-    border: none;
-    padding: 10px 0 8px;
-    font-size: 18px;              /* было 16 */
-    cursor: pointer;
-    color: #9ca3af;
-    position: relative;
-}
-
-/* --- строка пары --- */
-.lesson-card {
-    padding: 10px 14px 12px;
-    border-bottom: 1px solid #e5e7eb;
-    background: transparent;
-    box-shadow: none;
-    border-radius: 0;
-    font-size: 14px;              /* базовый размер внутри карточки */
-}
-
-/* "3 пара (13:00 — 14:30)" */
-.lesson-header {
-    font-size: 13px;              /* было 11 */
-    color: #2563eb;
-    margin-bottom: 4px;
-}
-
-/* Название предмета */
-.lesson-subject {
-    font-size: 15px;              /* было 12 */
-    font-weight: 600;
-    margin-bottom: 3px;
-    color: #111827;
-}
-
-/* Аудитория / преподаватель */
-.lesson-meta {
-    font-size: 14px;              /* было 12 */
-    color: #6b7280;
-    margin-bottom: 2px;
-}
-
-/* Заметка */
-.lesson-note {
-    font-size: 13px;              /* чуть больше */
-    color: #6b7280;
-    margin-bottom: 2px;
-}
-
-/* "Подробнее" */
-.lesson-more-link {
-    font-size: 13px;              /* было 11 */
-    color: #2563eb;
-    cursor: pointer;
-    margin-top: 2px;
-}
-
