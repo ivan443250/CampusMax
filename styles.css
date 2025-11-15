@@ -937,9 +937,3 @@ body {
 #logoutBtn:hover {
     background-color: #d1d5db;
 }
-
-.profile-details button {
-    display: block;
-    width: 100%;
-    margin: 0 auto 16px;
-}
