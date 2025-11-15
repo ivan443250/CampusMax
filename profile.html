@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Профиль пользователя</title>
     <link rel="stylesheet" href="styles.css">
-
     <script type="module" src="auth.js"></script>
     <script type="module" src="profile.js"></script>
 </head>
@@ -35,6 +34,8 @@
             <div class="profile-photo">
                 <button type="button" class="btn btn-primary">Выбрать фото</button>
             </div>
+
+            <!-- Данные профиля -->
             <div class="profile-details">
                 <label for="fullName">Петр Петр Петрович</label>
                 <div id="fullName"></div>
@@ -58,7 +59,7 @@
             </div>
 
             <div class="profile-details">
-                <span id="syncStatus" class="sync-status"></span>
+                <span id="syncStatus" class="sync-status">СКС РФ синхронизирован</span>
             </div>
 
             <button id="logoutBtn" class="btn btn-danger">Выйти из аккаунта</button>
