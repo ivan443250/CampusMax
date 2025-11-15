@@ -844,17 +844,6 @@ body {
     cursor: pointer;
 }
 
-/* Нижнее меню */
-.bottom-nav-wrapper {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: white;
-    border-top: 1px solid #e5e7eb;
-    padding: 8px;
-}
-
 .nav-item {
     background: transparent;
     border: none;
