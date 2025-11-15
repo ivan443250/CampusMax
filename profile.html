@@ -66,5 +66,18 @@
     </main>
 
 </div>
+<script src="https://st.max.ru/js/max-web-app.js"></script>
+    <script>
+      if (window.WebApp) {
+        // говорим клиенту MAX, что всё отрисовалось
+        WebApp.ready();
+    
+        // включаем системную кнопку «Назад» в шапке
+        WebApp.BackButton.show();
+        WebApp.BackButton.onClick(() => {
+          WebApp.close(); // закрыть мини-апп и вернуться в чат
+        });
+      }
+    </script>
 </body>
 </html>
