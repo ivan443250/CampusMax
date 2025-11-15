@@ -197,4 +197,4 @@ async function signInUser(email, password) {
 
 ## Лицензия
 
-Этот проект доступен под лицензией MIT. См. файл [LICENSE](LICENSE) для подробностей.
+Этот проект доступен под лицензией MIT
