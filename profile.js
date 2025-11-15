@@ -32,22 +32,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     try {
+        // 1. Загружаем данные пользователя
         const userSnap = await getDoc(doc(db, "users", uid));
         if (!userSnap.exists()) {
             throw new Error("Профиль пользователя не найден");
         }
 
         const profile = userSnap.data();
-        const universityId = profile.universityId;
         const phone = profile.phone || "Не указан";
         const email = profile.email || "Не указан";
-        const university = profile.university || "Не указано";
+        const universityId = profile.universityId;
+        const fullName = profile.fullName || "Не указано"; // Используем правильное имя из базы данных
 
-        // Заполняем данные профиля на странице
-        document.getElementById("fullName").textContent = profile.fullName || "Не указано";
+        // 2. Получаем данные о университете по universityId
+        let university = "Не указано";
+        if (universityId) {
+            const universitySnap = await getDoc(doc(db, "universities", universityId));
+            if (universitySnap.exists()) {
+                university = universitySnap.data().name || "Не указано";
+            }
+        }
+
+        // 3. Заполняем данные профиля на странице
+        document.getElementById("fullName").textContent = fullName;
         document.getElementById("phone").value = phone;
         document.getElementById("email").value = email;
         document.getElementById("university").value = university;
+
+        // Если есть изображение профиля, загружаем его
+        if (profile.profileImageUrl) {
+            document.getElementById("profileImage").src = profile.profileImageUrl;
+        }
 
         // Добавим информацию по синхронизации, если нужно
         document.getElementById("syncStatus").textContent = "СКС РФ синхронизирован";
