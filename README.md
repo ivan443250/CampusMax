@@ -39,6 +39,8 @@ student2 обладает ролью студента и можно убедит
 
 <img width="759" height="309" alt="image" src="https://github.com/user-attachments/assets/38596b74-79e9-4a01-9f7c-d56289a3e75c" />
 
+### Главная
+
 на главной странице основного приложения можно увидеть расписание на сегодняшний и на завтрашний день:
 
 <img width="328" height="338" alt="image" src="https://github.com/user-attachments/assets/11f9ea13-572b-47fa-b2e2-51216bf7479a" />
@@ -51,7 +53,27 @@ student2 обладает ролью студента и можно убедит
 
 <img width="764" height="889" alt="image" src="https://github.com/user-attachments/assets/30122885-a60f-4bd9-83ab-854d250ce073" />
 
-кроме того, был реализован функционал, [позволяющий загрузить расписание в любом виде на таблице excel](#распознавание-расписания-любого-формата-с-нейросетью)
+кроме того, был реализован функционал с api нейросети, [позволяющий загрузить расписание в любом виде на таблице excel](#распознавание-расписания-любого-формата-с-нейросетью)
+
+### Панель события
+
+следущая панель основного приложения - события
+
+<img width="313" height="601" alt="image" src="https://github.com/user-attachments/assets/df4bb0d3-5dff-438d-b303-1c956abbbe2e" />
+
+в приложении админа можно удобно добавлять и удалять события:
+
+<img width="756" height="805" alt="image" src="https://github.com/user-attachments/assets/c1de1d96-b0f8-43f5-b342-0c59621425f2" />
+
+### Профиль пользователя
+
+Чтобы перейти в профиль, пользоваителю нужно нажать на кнопку в правом верхнем углу:
+
+<img width="311" height="325" alt="image" src="https://github.com/user-attachments/assets/003f1065-a187-41a1-b8d0-7d1c8660f441" />
+
+здесь отображается вся собранная информация о пользователе:
+
+<img width="328" height="724" alt="image" src="https://github.com/user-attachments/assets/94d97b58-aa3d-4946-a0d6-b3e6e2fe3edf" />
 
 ## Структура проекта
 
