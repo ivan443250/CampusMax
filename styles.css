@@ -889,3 +889,50 @@ body {
     font-weight: 600;
     color: #2563eb;
 }
+
+/* --- Выровнять кнопки по длине и по центру --- */
+
+/* Общие стили для кнопок */
+.profile-details button {
+    background-color: #2563eb;
+    color: white;
+    font-size: 14px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%; /* Кнопки будут растягиваться на всю ширину блока */
+    max-width: 500px; /* Максимальная ширина кнопки */
+    margin: 0 auto 16px; /* Выравнивание по центру и отступ снизу */
+}
+
+/* Стиль для кнопки с подтверждением почты */
+#confirmEmailBtn {
+    background-color: #2563eb;
+}
+
+#confirmEmailBtn:hover {
+    background-color: #1d4ed8;
+}
+
+/* Стиль для кнопки "Добавить место обучения" */
+#addUniversityBtn {
+    background-color: #e5e7eb;
+    color: #111827;
+}
+
+#addUniversityBtn:hover {
+    background-color: #d1d5db;
+}
+
+/* Кнопка для выхода из аккаунта */
+#logoutBtn {
+    background-color: #e5e7eb;
+    color: #111827;
+    margin-top: 16px; /* Отступ сверху */
+}
+
+#logoutBtn:hover {
+    background-color: #d1d5db;
+}
