@@ -855,12 +855,6 @@ body {
     padding: 8px;
 }
 
-.bottom-nav {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px;
-}
-
 .nav-item {
     background: transparent;
     border: none;
