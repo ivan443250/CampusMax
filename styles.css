@@ -844,7 +844,6 @@ body {
 }
 
 .nav-item {
-    background: transparent;
     border: none;
     cursor: pointer;
     display: flex;
