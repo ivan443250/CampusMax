@@ -1,0 +1,107 @@
+<!-- order-doc.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Заказ справки</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="order-doc.js"></script>
+</head>
+<body class="page">
+<div class="phone-shell">
+
+    <!-- Верхняя шапка с кнопкой назад -->
+    <header class="home-top">
+        <div class="home-top-left">
+            <button class="back-link" type="button" onclick="window.location.href='documents.html'">
+                ← Назад
+            </button>
+        </div>
+        <div class="home-top-right">
+            <button class="profile-icon-btn">
+                <img class="home-top-avatar" src="img/user-avatar.svg" alt="Профиль">
+            </button>
+        </div>
+    </header>
+
+    <main class="app-content home-main">
+        <h1 class="app-heading">Заказ справки</h1>
+
+        <!-- Форма для заказа справки -->
+        <div class="order-doc-form">
+            <div class="form-group">
+                <label for="documentType">Тип справки</label>
+                <select id="documentType" name="documentType">
+                    <option value="stipend">Справка о стипендии</option>
+                    <option value="work">Справка о месте работы родителей</option>
+                    <!-- Добавьте другие типы по необходимости -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="department">Корпус выдачи</label>
+                <input type="text" id="department" name="department" placeholder="Введите корпус" />
+            </div>
+
+            <div class="form-group">
+                <label for="comments">Комментарии</label>
+                <textarea id="comments" name="comments" placeholder="Введите комментарии"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="isElectronic" name="isElectronic" />
+                    Электронная справка
+                </label>
+            </div>
+
+            <button id="submitDocRequestBtn" class="btn btn-primary">Заказать справку</button>
+        </div>
+
+        <!-- Блок для отображения итогов заказа (на экране) -->
+        <div id="orderSummary" class="order-summary"></div>
+    </main>
+
+    <!-- Нижнее меню -->
+    <div class="bottom-nav-wrapper">
+        <nav class="bottom-nav" aria-label="Нижнее меню">
+            <button class="nav-item" type="button" onclick="window.location.href='home.html'">
+                <span class="nav-icon">
+                    <img src="img/icon-home.svg" alt="Главная">
+                </span>
+                <span class="nav-label">Главная</span>
+            </button>
+
+            <button class="nav-item" type="button" onclick="window.location.href='events.html'">
+                <span class="nav-icon">
+                    <img src="img/icon-events.svg" alt="События">
+                </span>
+                <span class="nav-label">События</span>
+            </button>
+
+            <button class="nav-item nav-item-center" type="button" onclick="window.location.href='bot.html'">
+                <span class="nav-icon">
+                    <img src="img/icon-bot.svg" alt="Бот">
+                </span>
+            </button>
+
+            <button class="nav-item" type="button" onclick="window.location.href='documents.html'">
+                <span class="nav-icon">
+                    <img src="img/icon-docs.svg" alt="Документы">
+                </span>
+                <span class="nav-label">Документы</span>
+            </button>
+
+            <button class="nav-item" type="button" onclick="window.location.href='other.html'">
+                <span class="nav-icon">
+                    <img src="img/icon-payments.svg" alt="Другое">
+                </span>
+                <span class="nav-label">Другое</span>
+            </button>
+        </nav>
+    </div>
+
+</div>
+</body>
+</html>
