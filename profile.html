@@ -1,40 +1,71 @@
-<!-- bot.html -->
+<!-- profile.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>КампусMAX — бот</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Профиль пользователя</title>
     <link rel="stylesheet" href="styles.css">
+
     <script type="module" src="auth.js"></script>
-    <script type="module" src="header.js"></script>
+    <script type="module" src="profile.js"></script>
 </head>
 <body class="page">
 <div class="phone-shell">
 
+    <!-- Верхняя шапка с кнопкой назад -->
     <header class="home-top">
         <div class="home-top-left">
-            <img class="home-top-logo" src="img/university-logo.svg" alt="Логотип вуза">
+            <button class="back-link" type="button" onclick="window.location.href='home.html'">
+                ← Назад
+            </button>
         </div>
         <div class="home-top-right">
-            <button class="profile-icon-btn" onclick="window.location.href='profile.html'">
+            <button class="profile-icon-btn">
                 <img class="home-top-avatar" src="img/user-avatar.svg" alt="Профиль">
             </button>
         </div>
     </header>
 
     <main class="app-content home-main">
-        <h1 class="app-heading">Бот КампусMAX</h1>
-        <p class="app-subheading">
-            Здесь будет чат-бот, который поможет быстро найти ответы на вопросы студента.
-        </p>
+        <h1 class="app-heading">Профиль</h1>
 
-        <p style="font-size:14px;color:#6b7280;">
-            В будущем сюда можно встроить бота с интеграцией по расписанию,
-            справкам, успеваемости и другим сервисам вуза.
-        </p>
+        <!-- Форма профиля -->
+        <div class="profile-form">
+            <div class="profile-photo">
+                <button type="button" class="btn btn-primary">Выбрать фото</button>
+            </div>
+            <div class="profile-details">
+                <label for="fullName">Петр Петр Петрович</label>
+                <div id="fullName"></div>
+            </div>
+
+            <div class="profile-details">
+                <label for="phone">Номер телефона</label>
+                <input type="tel" id="phone" name="phone" disabled>
+            </div>
+
+            <div class="profile-details">
+                <label for="email">Электронная почта</label>
+                <input type="email" id="email" name="email" disabled>
+                <button id="confirmEmailBtn" class="btn btn-primary">Подтвердить</button>
+            </div>
+
+            <div class="profile-details">
+                <label for="university">Место обучения</label>
+                <input type="text" id="university" name="university" disabled>
+                <button id="addUniversityBtn" class="btn btn-primary">Добавить место обучения</button>
+            </div>
+
+            <div class="profile-details">
+                <span id="syncStatus" class="sync-status"></span>
+            </div>
+
+            <button id="logoutBtn" class="btn btn-danger">Выйти из аккаунта</button>
+        </div>
     </main>
 
+    <!-- Нижнее меню -->
     <div class="bottom-nav-wrapper">
         <nav class="bottom-nav" aria-label="Нижнее меню">
             <button class="nav-item" type="button" onclick="window.location.href='home.html'">
@@ -51,7 +82,7 @@
                 <span class="nav-label">События</span>
             </button>
 
-            <button class="nav-item nav-item-center is-active" type="button">
+            <button class="nav-item nav-item-center" type="button" onclick="window.location.href='bot.html'">
                 <span class="nav-icon">
                     <img src="img/icon-bot.svg" alt="Бот">
                 </span>
@@ -72,6 +103,7 @@
             </button>
         </nav>
     </div>
+
 </div>
 </body>
 </html>
