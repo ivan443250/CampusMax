@@ -604,3 +604,116 @@ body {
 }
 
 /* используем уже существующий .schedule-list и .lesson-card */
+/* --- События --- */
+
+.events-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.events-filter-bar {
+    margin-bottom: 10px;
+}
+
+.events-filter-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 20px;
+    border-radius: 999px;
+    border: none;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.events-filter-pill--active {
+    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.4);
+}
+
+/* список карточек */
+
+.events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 90px; /* под нижнее меню */
+}
+
+/* карточка события */
+
+.event-card {
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+/* верхняя картинка */
+
+.event-card-image-wrapper {
+    width: 100%;
+    overflow: hidden;
+}
+
+.event-card-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+/* тело карточки */
+
+.event-card-body {
+    padding: 10px 12px 12px;
+}
+
+/* строка: дедлайн + тип */
+
+.event-card-meta-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.event-card-registration {
+    color: #2563eb;
+}
+
+.event-card-type {
+    color: #9ca3af;
+}
+
+/* заголовок и подзаголовок */
+
+.event-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 2px 0 4px;
+    color: #111827;
+}
+
+.event-card-subtitle {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* кнопка внутри карточки */
+
+.event-card-button-row {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.event-card-button {
+    padding-inline: 20px;
+    font-size: 14px;
+}

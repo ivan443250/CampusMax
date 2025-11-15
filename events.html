@@ -6,15 +6,20 @@
     <title>КампусMAX — события</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="styles.css">
+
+    <!-- сначала auth.js (сессия), потом header.js (логотип), потом events.js -->
     <script type="module" src="auth.js"></script>
     <script type="module" src="header.js"></script>
+    <script type="module" src="events.js"></script>
 </head>
 <body class="page">
 <div class="phone-shell">
 
+    <!-- верхняя шапка -->
     <header class="home-top">
         <div class="home-top-left">
-            <img class="home-top-logo" src="img/university-logo.svg" alt="Логотип вуза">
+            <img id="universityLogo" class="home-top-logo"
+                 src="img/university-logo.svg" alt="Логотип вуза">
         </div>
         <div class="home-top-right">
             <img class="home-top-avatar" src="img/user-avatar.svg" alt="Профиль">
@@ -22,21 +27,38 @@
     </header>
 
     <main class="app-content home-main">
-        <h1 class="app-heading">События</h1>
-        <p class="app-subheading">
-            Здесь позже будет список мероприятий, новостей и важных дат вашего вуза.
-        </p>
 
-        <!-- Пока просто заглушка -->
-        <p style="font-size:14px;color:#6b7280;">
-            Разработка этого раздела в процессе. Администратор вуза сможет
-            добавлять сюда события через отдельный административный сайт.
-        </p>
+        <!-- заголовок / фильтр -->
+        <div class="events-header">
+            <button class="back-link" type="button"
+                    onclick="window.location.href='home.html'">
+                ← Назад
+            </button>
+            <h1 class="app-heading">События</h1>
+        </div>
+
+        <!-- фильтры типов событий, пока только "Хакатоны" как на скрине -->
+        <div class="events-filter-bar">
+            <button class="events-filter-pill events-filter-pill--active"
+                    type="button"
+                    data-event-filter="all">
+                Хакатоны
+            </button>
+            <!-- позже сюда можно добавить другие типы: лекции, стажировки и т.д. -->
+        </div>
+
+        <!-- список карточек событий -->
+        <div id="eventsList" class="events-list">
+            <!-- events.js вставит сюда карточки -->
+        </div>
+
     </main>
 
+    <!-- нижнее меню -->
     <div class="bottom-nav-wrapper">
         <nav class="bottom-nav" aria-label="Нижнее меню">
-            <button class="nav-item" type="button" onclick="window.location.href='home.html'">
+            <button class="nav-item" type="button"
+                    onclick="window.location.href='home.html'">
                 <span class="nav-icon">
                     <img src="img/icon-home.svg" alt="Главная">
                 </span>
@@ -50,20 +72,23 @@
                 <span class="nav-label">События</span>
             </button>
 
-            <button class="nav-item nav-item-center" type="button" onclick="window.location.href='bot.html'">
+            <button class="nav-item nav-item-center" type="button"
+                    onclick="window.location.href='bot.html'">
                 <span class="nav-icon">
                     <img src="img/icon-bot.svg" alt="Бот">
                 </span>
             </button>
 
-            <button class="nav-item" type="button" onclick="window.location.href='docs.html'">
+            <button class="nav-item" type="button"
+                    onclick="window.location.href='docs.html'">
                 <span class="nav-icon">
                     <img src="img/icon-docs.svg" alt="Документы">
                 </span>
                 <span class="nav-label">Документы</span>
             </button>
 
-            <button class="nav-item" type="button" onclick="window.location.href='other.html'">
+            <button class="nav-item" type="button"
+                    onclick="window.location.href='other.html'">
                 <span class="nav-icon">
                     <img src="img/icon-payments.svg" alt="Другое">
                 </span>
@@ -71,6 +96,7 @@
             </button>
         </nav>
     </div>
+
 </div>
 </body>
 </html>
